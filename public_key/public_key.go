@@ -9,7 +9,7 @@ import (
 
 type PublicKey struct {
 	N *big.Int // modules
-	E int // exponent
+	E int      // exponent
 }
 
 func FromPEM(raw []byte) (*PublicKey, error) {
