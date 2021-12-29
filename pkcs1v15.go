@@ -5,47 +5,56 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"rsa-impl/private_key"
 	"rsa-impl/public_key"
 )
 
+func nonZeroRandomBytes(s []byte, rand io.Reader) (err error) {
+	_, err = io.ReadFull(rand, s)
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < len(s); i++ {
+		for s[i] == 0 {
+			_, err = io.ReadFull(rand, s[i:i+1])
+			if err != nil {
+				return
+			}
+			// In tests, the PRNG may return all zeros so we do
+			// this to break the loop.
+			s[i] ^= 0x42
+		}
+	}
+
+	return
+}
+
 // EncryptPKCS1v15 ...
-func EncryptPKCS1v15(publicKey *public_key.PublicKey, m []byte) ([]byte, error) {
-	keyLen := (publicKey.N.BitLen() + 7) / 8
-	if len(m) > keyLen-11 {
+func EncryptPKCS1v15(pub *public_key.PublicKey, m []byte) ([]byte, error) {
+	r := rand.Reader
+
+	if len(m) > pub.Size()-11 {
 		return nil, errors.New("encryption data too long")
 	}
 
-	// PKCS1v15
-	// EB = 00 || 02 || PS || 00 || D
-	psLen := keyLen - len(m) - 3
-	eb := make([]byte, keyLen)
-	eb[0] = 0x00
-	eb[1] = 0x02
-
-	for i := 2; i < 2+psLen; {
-		_, err := rand.Read(eb[i : i+1])
-		if err != nil {
-			return nil, err
-		}
-		if eb[i] != 0x00 {
-			i++
-		}
+	// EM = 0x00 || 0x02 || PS || 0x00 || M
+	em := make([]byte, pub.Size())
+	em[1] = 2
+	ps, mm := em[2:len(em)-len(m)-1], em[len(em)-len(m):]
+	err := nonZeroRandomBytes(ps, r)
+	if err != nil {
+		return nil, err
 	}
-	eb[2+psLen] = 0x00
+	em[len(em)-len(m)-1] = 0
+	copy(mm, m)
 
-	copy(eb[3+psLen:], m)
+	mBig := new(big.Int).SetBytes(m)
+	c := encrypt(pub, mBig)
 
-	mnum := new(big.Int).SetBytes(eb)
-	c := encrypt(publicKey, mnum)
-
-	padLen := keyLen - len(c.Bytes()) + 2
-	for i := 0; i < padLen; i++ {
-		eb[i] = 0x00
-	}
-	copy(eb[padLen:], c.Bytes())
-	return eb, nil
+	return c.FillBytes(em), nil
 }
 
 func DecryptPKCS1v15(privateKey *private_key.PrivateKey, c []byte) ([]byte, error) {
