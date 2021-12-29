@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const TestMessage = "lorem ipsu"
+var TestMessage = []byte("lorem ipsu test message")
 
 func TestEncryptPKCS1v15(t *testing.T) {
 	rawPublicKey, _ := os.ReadFile("./test_data/public.pem")
@@ -24,17 +24,17 @@ func TestEncryptPKCS1v15(t *testing.T) {
 		t.Error(err)
 	}
 
-	enc, err := EncryptPKCS1v15(pk, []byte(TestMessage))
+	enc, err := EncryptPKCS1v15(pk, TestMessage)
 	if err != nil {
 		t.Error(err)
 	}
 
 	data, err := DecryptPKCS1v15(privKey, enc)
 	if err != nil {
-		return
+		t.Error(err)
 	}
 
-	if !reflect.DeepEqual(enc, data) {
+	if !reflect.DeepEqual(TestMessage, data) {
 		t.Errorf("encrypted %v\nmust be %v", data, enc)
 	}
 }

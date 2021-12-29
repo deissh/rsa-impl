@@ -33,26 +33,26 @@ func nonZeroRandomBytes(s []byte, rand io.Reader) (err error) {
 }
 
 // EncryptPKCS1v15 ...
-func EncryptPKCS1v15(pub *public_key.PublicKey, m []byte) ([]byte, error) {
+func EncryptPKCS1v15(pub *public_key.PublicKey, msg []byte) ([]byte, error) {
 	r := rand.Reader
-
-	if len(m) > pub.Size()-11 {
-		return nil, errors.New("encryption data too long")
+	k := pub.Size()
+	if len(msg) > k-11 {
+		return nil, errors.New("err message too long")
 	}
 
 	// EM = 0x00 || 0x02 || PS || 0x00 || M
-	em := make([]byte, pub.Size())
+	em := make([]byte, k)
 	em[1] = 2
-	ps, mm := em[2:len(em)-len(m)-1], em[len(em)-len(m):]
+	ps, mm := em[2:len(em)-len(msg)-1], em[len(em)-len(msg):]
 	err := nonZeroRandomBytes(ps, r)
 	if err != nil {
 		return nil, err
 	}
-	em[len(em)-len(m)-1] = 0
-	copy(mm, m)
+	em[len(em)-len(msg)-1] = 0
+	copy(mm, msg)
 
-	mBig := new(big.Int).SetBytes(m)
-	c := encrypt(pub, mBig)
+	m := new(big.Int).SetBytes(em)
+	c := encrypt(new(big.Int), pub, m)
 
 	return c.FillBytes(em), nil
 }

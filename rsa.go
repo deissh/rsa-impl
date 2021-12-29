@@ -6,10 +6,8 @@ import (
 	"rsa-impl/public_key"
 )
 
-func encrypt(pub *public_key.PublicKey, m *big.Int) *big.Int {
-	c := new(big.Int)
+func encrypt(c *big.Int, pub *public_key.PublicKey, m *big.Int) *big.Int {
 	e := big.NewInt(int64(pub.E))
-
 	c.Exp(m, e, pub.N)
 	return c
 }
