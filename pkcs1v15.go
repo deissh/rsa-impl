@@ -40,7 +40,7 @@ func EncryptPKCS1v15(publicKey *public_key.PublicKey, m []byte) ([]byte, error) 
 	mnum := new(big.Int).SetBytes(eb)
 	c := encrypt(publicKey, mnum)
 
-	padLen := keyLen - len(c.Bytes())
+	padLen := keyLen - len(c.Bytes()) + 2
 	for i := 0; i < padLen; i++ {
 		eb[i] = 0x00
 	}

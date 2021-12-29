@@ -26,7 +26,7 @@ func TestEncryptPKCS1v15(t *testing.T) {
 
 	enc, err := EncryptPKCS1v15(pk, []byte(TestMessage))
 	if err != nil {
-		return
+		t.Error(err)
 	}
 
 	data, err := DecryptPKCS1v15(privKey, enc)
